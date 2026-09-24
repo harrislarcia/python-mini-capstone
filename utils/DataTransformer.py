@@ -2,6 +2,8 @@ import os
 import polars as pl
 
 
+# ============= Phase 2 =============
+
 def transform_gdp(input_file, standardized_dir, error_dir):
     """
     Clean and transform raw World Bank GDP data.
@@ -73,13 +75,76 @@ def transform_gdp(input_file, standardized_dir, error_dir):
         }
     )
 
-    print()
-    print("--------------------------------")
-    print("GDP Transformation")
-    print(f"Raw records: {df.height}")
-    print(f"Valid records: {valid_df.height}")
-    print(f"Error records: {error_df.height}")
-    print(f"Standardized output: {standardized_dir}")
-    print(f"Error output: {error_file}")
-
     return valid_df, error_df
+
+
+# ============= Phase 3 =============
+
+def calculate_growth_rate(standardized_dir, curated_dir):
+    """
+    Calculate year-on-year GDP growth rate for each country.
+    """
+
+    # Read Hive-partitioned Parquet data
+    df = pl.read_parquet(
+        os.path.join(standardized_dir, "**", "*.parquet"),
+        hive_partitioning=True
+    )
+
+    # Sort by country and year
+    df = df.sort([
+        "countryiso3code",
+        "year"
+    ])
+
+    # Get previous year's GDP and year for each country
+    df = df.with_columns([
+        pl.col("gdp")
+        .shift(1)
+        .over("countryiso3code")
+        .alias("previous_gdp"),
+
+        pl.col("year")
+        .shift(1)
+        .over("countryiso3code")
+        .alias("previous_year")
+    ])
+
+    # Calculate YoY GDP growth rate
+    df = df.with_columns(
+        pl.when(
+            pl.col("previous_year") == pl.col("year") - 1
+        )
+        .then(
+            (
+                (pl.col("gdp") - pl.col("previous_gdp"))
+                / pl.col("previous_gdp")
+            ) * 100
+        )
+        .otherwise(None)
+        .alias("growth_rate")
+    )
+
+    # Keep curated columns
+    df = df.select([
+        "countryiso3code",
+        "country",
+        "year",
+        "gdp",
+        "previous_gdp",
+        "growth_rate"
+    ])
+
+    # Create output directory
+    os.makedirs(curated_dir, exist_ok=True)
+
+    # Write curated data as partitioned Parquet
+    df.write_parquet(
+        curated_dir,
+        use_pyarrow=True,
+        pyarrow_options={
+            "partition_cols": ["year"]
+        }
+    )
+
+    return df

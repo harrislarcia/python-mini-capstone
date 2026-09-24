@@ -35,6 +35,13 @@ STANDARDIZED_ERRORS_DIR = os.path.join(
     "errors"
 )
 
+# Phase 3 output directory
+CURATED_GROWTH_RATE_DIR = os.path.join(
+    ROOT_DIR,
+    "curated",
+    "growth_rate"
+)
+
 
 try:
     # Call the World Bank API to get GDP data
@@ -50,22 +57,11 @@ try:
         STANDARDIZED_ERRORS_DIR
     )
 
-    # Phase 2 validation: read the generated Hive-partitioned Parquet
-    test_df = pl.read_parquet(
-        os.path.join(
-            STANDARDIZED_GDP_DIR,
-            "**",
-            "*.parquet"
-        ),
-        hive_partitioning=True
+    # Phase 3: Calculate GDP growth rate
+    growth_df = data_transformer.calculate_growth_rate(
+        STANDARDIZED_GDP_DIR,
+        CURATED_GROWTH_RATE_DIR
     )
-
-    print()
-    print("--------------------------------")
-    print("Phase 2 Parquet Validation")
-    print(test_df.schema)
-    print(test_df.head())
-    print(f"Rows: {test_df.height}")
 
     data_frame = pl.DataFrame(gdp_data)
 
@@ -85,10 +81,6 @@ try:
         pl.col("countryiso3code").n_unique()
     ).item()
 
-    unique_years = data_frame.select(
-        pl.col("date").n_unique()
-    ).item()
-
     earliest_year = data_frame.select(
         pl.col("date").min()
     ).item()
@@ -97,22 +89,45 @@ try:
         pl.col("date").max()
     ).item()
 
-    print()
-    print("--------------------------------")
-    print("Raw GDP Data Analysis")
-    print(f"Total records: {row_count}")
-    print(f"Countries Available: {unique_countries}")
-    print(f"Earliest year: {earliest_year}")
-    print(f"Latest year: {latest_year}")
-    print(f"Number of years: {unique_years}")
+    print("\n--------------------------------")
+    print("Phase 1: Data Ingestion")
+    print("Status: SUCCESS")
+    print(f"Raw records: {row_count}")
+    print(f"Unique ISO codes: {unique_countries}")
+    print(f"Year range: {earliest_year}-{latest_year}")
+    print(f"Raw output: {RAW_JSON_FILE}")
+    print(f"Audit log: {AUDIT_FILE}")
 
-    print()
-    print("--------------------------------")
-    print("Phase 2 Transformation")
+    print("\n--------------------------------")
+    print("Phase 2: Data Transformation")
+    print(f"Raw records: {row_count}")
     print(f"Standardized records: {valid_df.height}")
-    print(f"Error records: {error_df.height}")
+    print(f"Rejected null records: {error_df.height}")
+    print(
+        f"Validation: {valid_df.height} + "
+        f"{error_df.height} = {row_count}"
+    )
     print(f"Standardized output: {STANDARDIZED_GDP_DIR}")
-    print(f"Error output: {STANDARDIZED_ERRORS_DIR}")
+    print(
+        "Error file: "
+        f"{os.path.join(STANDARDIZED_ERRORS_DIR, 'gdp_null_errors.csv')}"
+    )
+
+    print("\n--------------------------------")
+    print("Phase 3: GDP Growth Rate")
+    print(f"Curated records: {growth_df.height}")
+    print("Partitioned by: year")
+    print(f"Curated output: {CURATED_GROWTH_RATE_DIR}")
+
+    print("\nPhilippines GDP Growth Demonstration (2021-2025)")
+    print(
+        growth_df
+        .filter(
+            (pl.col("countryiso3code") == "PHL") &
+            (pl.col("year").is_between(2021, 2025))
+        )
+        .sort("year")
+    )
 
 
 except Exception:

@@ -1,0 +1,3 @@
+timestamp,status,source,row_count,file,error
+2026-09-24T02:15:35.397155+00:00,SUCCESS,https://api.worldbank.org/v2/country/all/indicators/NY.GDP.MKTP.CD?format=json,17490,world_bank_gdp_data\raw\gdp\gdp.json,
+2026-09-24T02:22:07.978189+00:00,SUCCESS,https://api.worldbank.org/v2/country/all/indicators/NY.GDP.MKTP.CD?format=json,17490,world_bank_gdp_data\raw\gdp\gdp.json,

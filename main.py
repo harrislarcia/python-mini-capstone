@@ -1,6 +1,4 @@
 import os
-import json
-
 import polars as pl
 import dotenv
 

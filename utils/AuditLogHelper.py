@@ -2,6 +2,9 @@ import os
 import csv
 from datetime import datetime, timezone
 
+"""
+    Audit Log Helper to write audit logs for the data ingestion process.
+"""
 
 def write_audit_log(
     audit_file,

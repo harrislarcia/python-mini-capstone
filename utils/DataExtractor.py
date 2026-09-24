@@ -2,6 +2,11 @@ import json
 import time
 import requests as req
 
+"""
+    Fetches all data from the World Bank API and saves it to a JSON file. Used looping and pagination to retrieve all pages of data.
+    Implements retry logic for failed requests.
+"""
+
 def extract_all_data(url, output_file):
 
     page = 1

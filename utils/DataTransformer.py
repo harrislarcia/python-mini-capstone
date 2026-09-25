@@ -19,12 +19,25 @@ def transform_gdp(input_file, standardized_dir, error_dir):
     # Read raw JSON
     df = pl.read_json(input_file)
 
+    # Show country Struct before flattening
+    print()
+    print("--------------------------------")
+    print("Before Flattening")
+    print(df.select("country").head())
+
+
     # Flatten the nested country Struct
     df = df.with_columns(
         pl.col("country")
         .struct.field("value")
         .alias("country")
     )
+
+    # Show country after flattening
+    print()
+    print("--------------------------------")
+    print("After Flattening")
+    print(df.select("country").head())
 
     # Rename columns
     df = df.rename({
@@ -50,6 +63,7 @@ def transform_gdp(input_file, standardized_dir, error_dir):
         pl.col("gdp").is_null()
     )
 
+    # Keep valid GDP for Parquet and Phase 3
     valid_df = df.filter(
         pl.col("gdp").is_not_null()
     )
@@ -66,7 +80,12 @@ def transform_gdp(input_file, standardized_dir, error_dir):
 
     error_df.write_csv(error_file)
 
-    # Write valid GDP data as partitioned Parquet
+    print()
+    print("--------------------------------")
+    print("Valid Dataframe")
+    print(valid_df)
+
+    # Write valid GDP data as partitioned Parquet in standardized/gdp folder
     valid_df.write_parquet(
         standardized_dir,
         use_pyarrow=True,
@@ -109,6 +128,24 @@ def calculate_growth_rate(standardized_dir, curated_dir):
         .over("countryiso3code")
         .alias("previous_year")
     ])
+
+    # Show previous year's GDP and year
+    print()
+    print("--------------------------------")
+    print("Previous Year GDP")
+    print(
+        df
+        .filter(pl.col("countryiso3code") != "")
+        .select([
+            "countryiso3code",
+            "country",
+            "year",
+            "gdp",
+            "previous_year",
+            "previous_gdp"
+        ])
+        .head(10)
+    )
 
     # Calculate YoY GDP growth rate
     df = df.with_columns(

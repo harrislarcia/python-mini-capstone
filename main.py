@@ -44,7 +44,7 @@ CURATED_GROWTH_RATE_DIR = os.path.join(
 
 
 try:
-    # Call the World Bank API to get GDP data
+    # Phase 1: Call the World Bank API to get GDP data
     gdp_data = data_extractor.extract_all_data(
         WORLD_BANK_URL,
         RAW_JSON_FILE

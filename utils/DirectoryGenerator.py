@@ -2,7 +2,8 @@ import os
 import dotenv
 
 """
-    Generates the necessary directory structure for the project. It creates directories for raw, standardized, and curated data, as well as an audit log directory.
+    Generates the necessary directory structure for the project.
+    It creates directories for raw, standardized, and curated data, as well as an audit log directory.
 """
 
 def generate_directories():

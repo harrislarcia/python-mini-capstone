@@ -129,7 +129,6 @@ try:
         .sort("year")
     )
 
-
 except Exception:
     # Log failed ingestion
     audit_helper.write_audit_log(
